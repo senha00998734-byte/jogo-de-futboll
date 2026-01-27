@@ -1,69 +1,62 @@
--- Função para Notificação (Para você saber que funcionou)
-local function Notify(title, text)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = 5;
-    })
-end
+-- CONFIGURAÇÕES
+local TamanhoHitbox = Vector3.new(100, 100, 100)
+local ForcaDoChute = 1.5 -- 1.0 é o normal, 2.0 é o dobro de força
 
-Notify("Script FIFA", "Iniciando modificações...")
-
--- 1. AJUSTE DO GOL (Hitbox)
--- No FIFA, os gols geralmente ficam dentro de 'Map' ou 'Field'
+-- 1. AJUSTE DO GOL (Invisível)
 local function adjustGoals()
-    local goalFound = false
-    -- Procura em todo o workspace por objetos chamados 'Goal' ou 'Hitbox'
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name == "Goal" or obj.Name == "Hitbox" then
             if obj:IsA("BasePart") then
-                obj.Size = Vector3.new(80, 80, 80)
-                obj.Transparency = 0.6
+                obj.Size = TamanhoHitbox
+                obj.Transparency = 1 -- 1 deixa totalmente invisível
                 obj.CanCollide = false
-                obj.Color = Color3.fromRGB(255, 0, 0) -- Fica vermelho para você ver
-                goalFound = true
             end
         end
     end
-    
-    if goalFound then
-        Notify("Gols", "Hitboxes gigantes ativadas!")
-    else
-        warn("Gols não encontrados no mapa.")
-    end
 end
 
--- 2. VELOCIDADE (WalkSpeed)
--- FIFA costuma resetar a velocidade, então precisamos forçar em um loop
+-- 2. CHUTE MAIS FORTE (Impulso na Bola)
 task.spawn(function()
-    while true do
+    while task.wait(0.1) do
         local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 25 -- Ajuste aqui
-        end
-        task.wait(0.1)
-    end
-end)
-
--- 3. ESTAMINA (Tentativa Genérica)
--- Como o FIFA usa sistemas protegidos, tentamos resetar valores comuns de estamina
-task.spawn(function()
-    while true do
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            -- Procura por valores de estamina dentro do personagem
-            for _, val in pairs(char:GetDescendants()) do
-                if val.Name:lower():find("stamina") or val.Name:lower():find("energy") then
-                    if val:IsA("NumberValue") or val:IsA("IntValue") then
-                        val.Value = 100
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            -- Procura a bola perto do jogador
+            for _, bola in pairs(workspace:GetDescendants()) do
+                if bola.Name == "Ball" or bola.Name == "Football" then
+                    local distancia = (char.HumanoidRootPart.Position - bola.Position).Magnitude
+                    
+                    -- Se a bola estiver perto (distância de chute)
+                    if distancia < 6 then
+                        -- Aplica uma força extra na direção que a bola já está indo
+                        bola.AssemblyLinearVelocity = bola.AssemblyLinearVelocity * ForcaDoChute
                     end
                 end
             end
         end
-        task.wait(1)
     end
 end)
 
--- Executar
+-- 3. VELOCIDADE E ESTAMINA (Melhorados)
+task.spawn(function()
+    while true do
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 28
+            
+            -- Tenta manter a estamina cheia
+            local stats = char:FindFirstChild("Stats") or char:FindFirstChild("Values")
+            if stats then
+                local stamin = stats:FindFirstChild("Stamina")
+                if stamin then stamin.Value = 100 end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
 adjustGoals()
-Notify("Status", "Script pronto!")
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Mod Ativado",
+    Text = "Gol Invisível + Chute Forte",
+    Duration = 5
+})
