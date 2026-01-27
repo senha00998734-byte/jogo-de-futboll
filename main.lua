@@ -1,57 +1,62 @@
--- Função de Notificação para saber se o script rodou
-local function Avisar(t, m)
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = t, Text = m, Duration = 5})
-end
+-- CONFIGURAÇÕES
+local TamanhoHitbox = Vector3.new(100, 100, 100)
+local ForcaDoChute = 1.5 -- 1.0 é o normal, 2.0 é o dobro de força
 
-Avisar("Iniciando", "Procurando Gols e Estamina...")
-
--- 1. LOCALIZADOR DE GOLS DINÂMICO
--- Em vez de procurar "Stadium", procuramos por qualquer Hitbox perto de redes
-task.spawn(function()
-    local sucessoGol = false
+-- 1. AJUSTE DO GOL (Invisível)
+local function adjustGoals()
     for _, obj in pairs(workspace:GetDescendants()) do
-        -- Procura por peças que costumam ser o sensor do gol
-        if obj:IsA("BasePart") and (obj.Name:find("Goal") or obj.Name:find("Hitbox") or obj.Name:find("GoalArea")) then
-            obj.Size = Vector3.new(25, 20, 15)
-            obj.Transparency = 0.5 -- Deixei visível (meio transparente) para você confirmar se achou!
-            obj.CanCollide = false
-            obj.CFrame = obj.CFrame * CFrame.new(0, 0, -2) -- Move para frente
-            sucessoGol = true
+        if obj.Name == "Goal" or obj.Name == "Hitbox" then
+            if obj:IsA("BasePart") then
+                obj.Size = TamanhoHitbox
+                obj.Transparency = 1 -- 1 deixa totalmente invisível
+                obj.CanCollide = false
+            end
         end
     end
-    if sucessoGol then Avisar("Gols", "Hitboxes localizadas!") end
-end)
+end
 
--- 2. RECARGA DE ESTAMINA (Método Forçado)
+-- 2. CHUTE MAIS FORTE (Impulso na Bola)
 task.spawn(function()
-    local player = game.Players.LocalPlayer
-    while task.wait(0.2) do
-        -- Busca no Personagem
-        local char = player.Character
-        if char then
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("NumberValue") or v:IsA("IntValue") then
-                    if v.Name:lower():find("stamina") or v.Name:lower():find("energy") or v.Name:lower():find("sprint") then
-                        v.Value = 100
+    while task.wait(0.1) do
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            -- Procura a bola perto do jogador
+            for _, bola in pairs(workspace:GetDescendants()) do
+                if bola.Name == "Ball" or bola.Name == "Football" then
+                    local distancia = (char.HumanoidRootPart.Position - bola.Position).Magnitude
+                    
+                    -- Se a bola estiver perto (distância de chute)
+                    if distancia < 6 then
+                        -- Aplica uma força extra na direção que a bola já está indo
+                        bola.AssemblyLinearVelocity = bola.AssemblyLinearVelocity * ForcaDoChute
                     end
                 end
             end
         end
-        -- Busca na PlayerGui (onde fica a barra visual)
-        for _, v in pairs(player.PlayerGui:GetDescendants()) do
-            if v:IsA("NumberValue") and (v.Name:lower():find("stamina") or v.Name:lower():find("energy")) then
-                v.Value = 100
+    end
+end)
+
+-- 3. VELOCIDADE E ESTAMINA (Melhorados)
+task.spawn(function()
+    while true do
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 28
+            
+            -- Tenta manter a estamina cheia
+            local stats = char:FindFirstChild("Stats") or char:FindFirstChild("Values")
+            if stats then
+                local stamin = stats:FindFirstChild("Stamina")
+                if stamin then stamin.Value = 100 end
             end
         end
+        task.wait(0.5)
     end
 end)
 
--- 3. VELOCIDADE E CHUTE
-game:GetService("RunService").Heartbeat:Connect(function()
-    local char = game.Players.LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = 24
-    end
-end)
-
-Avisar("Pronto", "Mods ativos. Verifique os gols!")
+adjustGoals()
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Mod Ativado",
+    Text = "Gol Invisível + Chute Forte",
+    Duration = 5
+})
