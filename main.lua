@@ -1,9 +1,9 @@
--- CONFIGURAÇÕES (Ajuste aqui se precisar)
-local TamanhoHitbox = Vector3.new(20, 20, 20) -- Diminuído de 100 para 20 (mais discreto)
-local ForcaDoChute = 1.3 -- Reduzi um pouco para não isolar a bola
-local AlcancePegarBola = 8 -- Distância que você consegue interagir com a bola
+-- CONFIGURAÇÕES
+local TamanhoHitbox = Vector3.new(25, 20, 15)
+local DeslocamentoParaFrente = 1.5 
+local VelocidadeRecargaEstamina = 50 -- Valor alto para carregar instantâneo
 
--- 1. AJUSTE DO GOL (Menor e Invisível)
+-- 1. AJUSTE DO GOL (Posicionado para frente)
 local function adjustGoals()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name == "Goal" or obj.Name == "Hitbox" then
@@ -11,49 +11,41 @@ local function adjustGoals()
                 obj.Size = TamanhoHitbox
                 obj.Transparency = 1 
                 obj.CanCollide = false
+                -- Move a hitbox levemente para frente
+                obj.CFrame = obj.CFrame * CFrame.new(0, 0, -DeslocamentoParaFrente)
             end
         end
     end
 end
 
--- 2. CHUTE E ALCANCE (Detectando a bola)
+-- 2. ESTAMINA ULTRA RÁPIDA
 task.spawn(function()
-    while task.wait(0.1) do
-        local char = game.Players.LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    while true do
+        local player = game.Players.LocalPlayer
+        local char = player.Character
         
-        if hrp then
-            for _, bola in pairs(workspace:GetDescendants()) do
-                if bola.Name == "Ball" or bola.Name == "Football" then
-                    local distancia = (hrp.Position - bola.Position).Magnitude
-                    
-                    -- Se a bola estiver no seu alcance
-                    if distancia < AlcancePegarBola then
-                        -- Se você estiver muito perto, dá o impulso do chute
-                        if distancia < 5 then
-                            bola.AssemblyLinearVelocity = bola.AssemblyLinearVelocity * ForcaDoChute
-                        end
+        if char then
+            -- Procura por valores de estamina no personagem e na pasta de Stats
+            for _, v in pairs(char:GetDescendants()) do
+                if v.Name:lower():find("stamina") or v.Name:lower():find("energy") then
+                    if v:IsA("NumberValue") or v:IsA("IntValue") then
+                        v.Value = 100 -- Mantém sempre cheio
                     end
                 end
             end
+            
+            -- Tenta forçar a regeneração via Humanoid (comum em alguns jogos de esporte)
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.WalkSpeed = 24 -- Velocidade que combinamos
+            end
         end
-    end
-end)
-
--- 3. VELOCIDADE E ESTAMINA
-task.spawn(function()
-    while true do
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 24 -- Velocidade levemente reduzida para parecer natural
-        end
-        task.wait(0.5)
-    end
-end)
-
-adjustGoals()
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Mod Atualizado",
-    Text = "Hitbox reduzida para 20x20",
-    Duration = 5
-})
+        
+        -- Tenta acessar o módulo de UI da estamina para resetar o delay de recarga
+        pcall(function()
+            local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+            -- Varre as interfaces procurando pela barra de estamina para forçar o preenchimento visual
+            for _, gui in pairs(PlayerGui:GetDescendants()) do
+                if gui.Name:lower():find("stamina") and gui:IsA("Frame") then
+                    if gui:FindFirstChild("Bar") then
+                        gui.Bar.Size = UDim2.new(1,
