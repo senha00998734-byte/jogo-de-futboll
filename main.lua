@@ -3,58 +3,55 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
-_G.GodModeActive = false
+_G.SkyActive = false
+local platform = nil
 
--- Interface Minimalista
+-- Criar Interface
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local btn = Instance.new("TextButton", gui)
-btn.Size = UDim2.new(0, 200, 0, 50)
-btn.Position = UDim2.new(0.5, -100, 0.15, 0)
-btn.Text = "SUPER GOD: OFF"
-btn.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-btn.TextColor3 = Color3.new(1, 1, 1)
+gui.Name = "OceanX_Final_V3"
 
--- Sistema de Noclip e Velocidade
-RunService.Stepped:Connect(function()
-    if _G.GodModeActive then
-        local char = player.Character
-        if char then
-            -- NOCLIP: Você atravessa a onda, ela não te empurra nem te mata
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                    part.CanTouch = false -- Isso impede que o script de morte do Brenhot te detecte
-                end
-            end
-            
-            local root = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            
-            if root and hum then
-                -- Anti-Morte por HP
-                hum.MaxHealth = 9e9
-                hum.Health = 9e9
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 250, 0, 260) -- Aumentado para caber o tracker
+main.Position = UDim2.new(0, 50, 0.5, -130)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
-                -- Velocidade 500 Forçada (Bypass)
-                if hum.MoveDirection.Magnitude > 0 and UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    root.Velocity = Vector3.new(hum.MoveDirection.X * 500, 2, hum.MoveDirection.Z * 500)
-                else
-                    -- Pequena força para cima para você não afundar no chão
-                    root.Velocity = Vector3.new(0, 1.5, 0) 
-                end
-            end
-        end
-    end
-end)
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "🌊 OCEAN X - ELITE 🌊"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
+Instance.new("UICorner", title)
 
-btn.MouseButton1Click:Connect(function()
-    _G.GodModeActive = not _G.GodModeActive
-    if _G.GodModeActive then
-        btn.Text = "SUPER GOD: ON"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        print("Bypass Brenhot Ativado!")
-    else
-        btn.Text = "SUPER GOD: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
-    end
-end)
+-- Botão Voar
+local flyBtn = Instance.new("TextButton", main)
+flyBtn.Size = UDim2.new(0.9, 0, 0, 35)
+flyBtn.Position = UDim2.new(0.05, 0, 0.18, 0)
+flyBtn.Text = "SUBIR 500M: OFF"
+flyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Instance.new("UICorner", flyBtn)
+
+-- Monitor de Distância da Onda (NOVO)
+local waveLabel = Instance.new("TextLabel", main)
+waveLabel.Size = UDim2.new(0.9, 0, 0, 40)
+waveLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
+waveLabel.Text = "Onda: Detectando..."
+waveLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+Instance.new("UICorner", waveLabel)
+
+-- Detector de Ranks e Caixas
+local detectorLabel = Instance.new("TextLabel", main)
+detectorLabel.Size = UDim2.new(0.9, 0, 0, 30)
+detectorLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
+detectorLabel.Text = "Buscando Celestiais..."
+detectorLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+detectorLabel.BackgroundTransparency = 1
+detectorLabel.TextSize = 11
+
+local boxLabel = Instance.new("TextLabel", main)
+boxLabel.Size = UDim2.new(0.9, 0, 0, 30)
+boxLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
+boxLabel.Text
