@@ -3,80 +3,68 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- Configurações
-_G.GodMode = false
-_G.Speed = 500
-local normalSpeed = 16
+_G.OceanXActive = false
 
--- Criar a interface (Menu)
-local gui = Instance.new("ScreenGui")
-gui.Name = "OceanX_Fix"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+-- Interface super leve (pra não travar o Xeno)
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "OceanX_Brenhot"
 
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 250, 0, 150)
-main.Position = UDim2.new(0.5, -125, 0.5, -75)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-main.BorderSizePixel = 2
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 200, 0, 100)
+main.Position = UDim2.new(0.5, -100, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 main.Active = true
 main.Draggable = true
-main.Parent = gui
 
-local title = Instance.new("TextLabel")
-title.Text = "🌊 OCEAN X (XENO FIX) 🌊"
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Parent = main
+local btn = Instance.new("TextButton", main)
+btn.Size = UDim2.new(1, 0, 1, 0)
+btn.Text = "ATIVAR TUDO\n(Tsunami Brenhot)"
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+btn.Font = Enum.Font.GothamBold
 
--- Botão de God + Speed
-local godBtn = Instance.new("TextButton")
-godBtn.Size = UDim2.new(0.9, 0, 0, 40)
-godBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-godBtn.Text = "Ativar God + Speed (500)"
-godBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-godBtn.TextColor3 = Color3.new(1, 1, 1)
-godBtn.Parent = main
-
--- Lógica de Velocidade e Invencibilidade (Otimizada para não travar)
-local function startLoop()
-    RunService.Stepped:Connect(function()
-        if _G.GodMode then
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    -- Invencibilidade
-                    hum.MaxHealth = math.huge
-                    hum.Health = math.huge
-                    
-                    -- Velocidade ao segurar Shift
-                    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        hum.WalkSpeed = _G.Speed
-                    else
-                        hum.WalkSpeed = normalSpeed
-                    end
+-- Lógica de Bypass
+RunService.Stepped:Connect(function()
+    if _G.OceanXActive then
+        local char = player.Character
+        if char then
+            -- GOD MODE: Mantém as partes do corpo presas (evita morrer pro tsunami)
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanTouch = false -- Bypass de toque no tsunami
                 end
             end
-        end
-    end)
-end
-
-godBtn.MouseButton1Click:Connect(function()
-    _G.GodMode = not _G.GodMode
-    if _G.GodMode then
-        godBtn.Text = "ON (God + Speed 500)"
-        godBtn.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-        print("OceanX: Ativado!")
-    else
-        godBtn.Text = "OFF (God + Speed 500)"
-        godBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-            player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = normalSpeed
+            
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+            
+            if hum and root then
+                -- Vida infinita
+                hum.MaxHealth = math.huge
+                hum.Health = math.huge
+                
+                -- SPEED 500 BYPASS: Empurra o personagem fisicamente
+                if hum.MoveDirection.Magnitude > 0 and UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    root.Velocity = hum.MoveDirection * 500 -- Aqui está a força 500
+                end
+            end
         end
     end
 end)
 
-startLoop()
-print("Menu OceanX Carregado!")
+btn.MouseButton1Click:Connect(function()
+    _G.OceanXActive = not _G.OceanXActive
+    if _G.OceanXActive then
+        btn.Text = "STATUS: LIGADO"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+    else
+        btn.Text = "STATUS: DESLIGADO"
+        btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        -- Restaura colisões ao desligar
+        if player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanTouch = true end
+            end
+        end
+    end
+end)
