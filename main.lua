@@ -1,105 +1,98 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- Interface
+_G.SkyActive = false
+local platform = nil
+
+-- Criar Interface
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "OceanX_FinalFix"
+gui.Name = "OceanX_Final_V3"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 200, 0, 100)
-main.Position = UDim2.new(0, 20, 0.4, 0)
-main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+main.Size = UDim2.new(0, 250, 0, 260) -- Aumentado para caber o tracker
+main.Position = UDim2.new(0, 50, 0.5, -130)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 main.Active = true
 main.Draggable = true
-Instance.new("UICorner", main)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "🌊 OCEAN X - ELITE 🌊"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
+Instance.new("UICorner", title)
+
+-- Monitor de Distância da Onda (NOVO)
 local waveLabel = Instance.new("TextLabel", main)
-waveLabel.Size = UDim2.new(1, 0, 0.5, 0)
-waveLabel.Text = "Procurando Onda..."
-waveLabel.TextColor3 = Color3.white
-waveLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+waveLabel.Size = UDim2.new(0.9, 0, 0, 40)
+waveLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
+waveLabel.Text = "Onda: Detectando..."
+waveLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 Instance.new("UICorner", waveLabel)
 
-local collectLabel = Instance.new("TextLabel", main)
-collectLabel.Size = UDim2.new(1, 0, 0.5, 0)
-collectLabel.Position = UDim2.new(0, 0, 0.5, 0)
-collectLabel.Text = "Coletor: Ativo"
-collectLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-collectLabel.BackgroundTransparency = 1
-
---- [DETECTOR DE ONDA RADICAL] ---
-local function getWave()
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-    
-    local closestDist = 9999
-    
-    -- Varre TUDO no Workspace que seja uma peça grande e se mova ou tenha nome de água
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Transparency < 1 then
-            local name = v.Name:lower()
-            -- Filtro por nomes e tamanhos típicos de ondas de tsunami no Roblox
-            if name:find("wave") or name:find("tsunami") or name:find("water") or (v.Size.X > 60 and v.Size.Z > 60) then
-                -- Verifica se a peça está acima do nível do mar (geralmente ondas de tsunami sobem)
-                if v.Position.Y > -5 then
-                    local dist = (v.Position - root.Position).Magnitude
-                    if dist < closestDist then
-                        closestDist = dist
-                    end
-                end
-            end
-        end
-    end
-    return math.floor(closestDist)
+--- [LÓGICA DO RASTREADOR DE ONDA] ---
+local function getWaveDistance()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return 9999 end
+    
+    local root = char.HumanoidRootPart
+    local closest = 9999
+    
+    -- No Brenhot as ondas costumam estar em pastas como 'ActiveTsunamis' ou ter 'Wave' no nome
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name:lower():find("wave") or obj.Name:lower():find("tsunami") then
+            if obj:IsA("BasePart") then
+                local dist = (obj.Position - root.Position).Magnitude
+                if dist < closest then closest = dist end
+            end
+        end
+    end
+    return math.floor(closest)
 end
 
---- [COLETOR INSTANTÂNEO POR TOQUE E PROMPT] ---
-local function instantCollect()
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
 
-    for _, v in pairs(workspace:GetDescendants()) do
-        -- Adicionei "Handle" e "Part" porque às vezes o item é um Tool no chão
-        if v:IsA("BasePart") then
-            local name = v.Name:lower()
-            if name:find("braihot") or name:find("box") or name:find("caixa") or name:find("gift") or v:FindFirstChild("TouchInterest") then
-                
-                -- 1. Tenta disparar o ProximityPrompt (E)
-                local prompt = v:FindFirstChildOfClass("ProximityPrompt") or v.Parent:FindFirstChildOfClass("ProximityPrompt")
-                if prompt then
-                    fireproximityprompt(prompt)
-                end
-                
-                -- 2. Simula o toque físico (Teleporta o toque para o jogador)
-                if firetouchinterest then
-                    firetouchinterest(root, v, 0) -- Toca
-                    firetouchinterest(root, v, 1) -- Solta
-                end
-            end
-        end
-    end
-end
 
---- [LOOP] ---
+--- [LOOP PRINCIPAL] ---
 RunService.Heartbeat:Connect(function()
-    local dist = getWave()
-    if dist and dist < 9000 then
-        if dist < 150 then
-            waveLabel.Text = "⚠️ PERIGO: " .. dist .. "m"
-            waveLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        else
-            waveLabel.Text = "🌊 Onda a: " .. dist .. "m"
-            waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        end
-    else
-        waveLabel.Text = "Calmaria..."
-        waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    end
+    -- Atualiza Distância da Onda
+    local d = getWaveDistance()
+    if d < 100 then
+        waveLabel.Text = "⚠️ PERIGO: " .. d .. "m"
+        waveLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    elseif d < 300 then
+        waveLabel.Text = "AVISO: " .. d .. "m"
+        waveLabel.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+    else
+        waveLabel.Text = "Onda Segura: " .. d .. "m"
+        waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    end
+
+    -- Mantém Plataforma no Ar
+    if _G.SkyActive and platform and player.Character then
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if root then platform.CFrame = CFrame.new(root.Position.X, 497, root.Position.Z) end
+    end
 end)
 
-task.spawn(function()
-    while task.wait(0.1) do -- 0.1 para ser o mais rápido possível sem crashar
-        pcall(instantCollect)
-    end
+
+        
+        -- Scanner Celestiais
+        local foundC = false
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("Head") then
+                for _, tag in pairs(p.Character.Head:GetDescendants()) do
+                    if tag:IsA("TextLabel") and (tag.Text:lower():find("celestial") or tag.Text:lower():find("divino")) then
+                        detectorLabel.Text = "👑 " .. p.Name .. ": " .. tag.Text:upper()
+                        foundC = true
+                    end
+                end
+            end
+        end
+        if not foundC then detectorLabel.Text = "Nenhum Rank Especial detectado." end
+        task.wait(2.5)
+    end
 end)
