@@ -1,41 +1,120 @@
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
+
 local player = Players.LocalPlayer
 
--- Interface
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "OceanX_God_Farmer"
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RagdollGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 230, 0, 160)
-main.Position = UDim2.new(0, 50, 0.5, -80)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main)
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 140, 0, 40)
+button.Position = UDim2.new(0, 20, 0, 20)
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Text = "Toggle Ragdoll"
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Parent = screenGui
 
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "🌊 OCEAN X - GOD MODE 🌊"
-title.TextColor3 = Color3.white
-title.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
-Instance.new("UICorner", title)
+-- State
+local isRagdolled = false
+local motorBackup = {}
 
-local waveLabel = Instance.new("TextLabel", main)
-waveLabel.Size = UDim2.new(0.9, 0, 0, 35)
-waveLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
-waveLabel.Text = "Onda: Detectando..."
-waveLabel.TextColor3 = Color3.white
-waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-Instance.new("UICorner", waveLabel)
+local function getCharacter()
+	return player.Character or player.CharacterAdded:Wait()
+end
 
-local statusLabel = Instance.new("TextLabel", main)
-statusLabel.Size = UDim2.new(0.9, 0, 0, 60)
-statusLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
-statusLabel.Text = "🛡️ Anti-Queda: ATIVO\n💰 Coletor (500m): ATIVO\n🛡️ Anti-Void/AFK: ATIVO"
-statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextSize = 11
+-- Ragdoll function
+local function toggleRagdoll()
+	local character = getCharacter()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return end
 
---- [LÓGICA ANTI-QUEDA / NO R
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	if not isRagdolled then
+		-- Disable humanoid states to allow physics to take over
+		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		humanoid.AutoRotate = false
+
+		-- Store original joints
+		motorBackup = {}
+
+		for _, joint in ipairs(character:GetDescendants()) do
+			if joint:IsA("Motor6D") then
+				local socket = Instance.new("BallSocketConstraint")
+				local a1 = Instance.new("Attachment")
+				local a2 = Instance.new("Attachment")
+
+				a1.CFrame = joint.C0
+				a2.CFrame = joint.C1
+				a1.Parent = joint.Part0
+				a2.Parent = joint.Part1
+
+				socket.Attachment0 = a1
+				socket.Attachment1 = a2
+				socket.Parent = joint.Parent
+				socket.LimitsEnabled = true
+				socket.TwistLimitsEnabled = true
+
+				motorBackup[joint.Name .. "_" .. joint:GetFullName()] = {
+					Part0 = joint.Part0,
+					Part1 = joint.Part1,
+					C0 = joint.C0,
+					C1 = joint.C1,
+					Parent = joint.Parent,
+				}
+
+				joint:Destroy()
+			end
+		end
+
+		-- Make them fall by applying a slight upward velocity first
+		root.Velocity = Vector3.new(0, 15, 0)
+
+		isRagdolled = true
+		button.Text = "Unragdoll"
+
+	else
+		-- Restore motors
+		for _, data in pairs(motorBackup) do
+			local motor = Instance.new("Motor6D")
+			motor.Name = "RestoredMotor"
+			motor.Part0 = data.Part0
+			motor.Part1 = data.Part1
+			motor.C0 = data.C0
+			motor.C1 = data.C1
+			motor.Parent = data.Parent
+		end
+		motorBackup = {}
+
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		humanoid.AutoRotate = true
+
+		-- Remove leftover attachments/sockets
+		for _, item in ipairs(character:GetDescendants()) do
+			if item:IsA("BallSocketConstraint") or item:IsA("Attachment") then
+				item:Destroy()
+			end
+		end
+
+		isRagdolled = false
+		button.Text = "Toggle Ragdoll"
+	end
+end
+
+-- Revert on respawn
+player.CharacterAdded:Connect(function(char)
+	isRagdolled = false
+	motorBackup = {}
+	button.Text = "Toggle Ragdoll"
+end)
+
+button.MouseButton1Click:Connect(toggleRagdoll)
