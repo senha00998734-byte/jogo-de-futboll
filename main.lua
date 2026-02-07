@@ -2,13 +2,13 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- Interface Original Otimizada
+-- Interface Original (Design que você gosta)
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "OceanX_Elite_Only"
+gui.Name = "OceanX_Celestial_Hunter"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 250, 0, 100)
-main.Position = UDim2.new(0, 50, 0.5, -50)
+main.Size = UDim2.new(0, 250, 0, 110)
+main.Position = UDim2.new(0, 50, 0.5, -55)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 main.Active = true
 main.Draggable = true
@@ -16,27 +16,27 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1, 0, 0, 35)
-title.Text = "🌊 OCEAN X - RARE ONLY 🌊"
+title.Text = "🌊 CELESTIAL HUNTER 🌊"
 title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundColor3 = Color3.fromRGB(100, 0, 255) -- Cor roxa para Celestiais
+title.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
 Instance.new("UICorner", title)
 
 local waveLabel = Instance.new("TextLabel", main)
-waveLabel.Size = UDim2.new(0.9, 0, 0, 40)
+waveLabel.Size = UDim2.new(0.9, 0, 0, 45)
 waveLabel.Position = UDim2.new(0.05, 0, 0.45, 0)
 waveLabel.Text = "Onda: Detectando..."
-waveLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+waveLabel.TextColor3 = Color3.white
 waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 Instance.new("UICorner", waveLabel)
 
---- [LÓGICA DO RASTREADOR (ESTILO ORIGINAL)] ---
+--- [LÓGICA DO RASTREADOR ORIGINAL] ---
 local function getWaveDistance()
     local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return 9999 end
-    
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return 9999 end
+    local root = char.HumanoidRootPart
     local closest = 9999
-    for _, obj in pairs(workspace:GetChildren()) do -- GetChildren é mais leve
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name:lower():find("wave") or obj.Name:lower():find("tsunami") then
             if obj:IsA("BasePart") then
                 local dist = (obj.Position - root.Position).Magnitude
@@ -47,27 +47,33 @@ local function getWaveDistance()
     return math.floor(closest)
 end
 
---- [COLETOR EXCLUSIVO: CELESTIAL & DIVINO] ---
-local function collectRareItems()
+--- [COLETOR PARA DUG DUG CELESTIAL] ---
+local function collectDugDug()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
     for _, obj in pairs(workspace:GetDescendants()) do
+        -- Procura pelo nome "Dug" ou pela tag "Celestial" que aparece na imagem
         local name = obj.Name:lower()
-        -- Foco exclusivo em Celestiais e Divinos
-        if (name:find("celestial") or name:find("divino") or name:find("divine")) and obj:IsA("BasePart") then
+        if (name:find("dug") or name:find("celestial") or name:find("ufo")) then
             
-            -- Coleta por ProximityPrompt
-            local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj.Parent:FindFirstChildOfClass("ProximityPrompt")
-            if prompt then
-                fireproximityprompt(prompt)
-            end
+            -- Se for o personagem da imagem, ele terá uma parte principal (HumanoidRootPart ou Head)
+            local targetPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or (obj:IsA("BasePart") and obj)
             
-            -- Coleta por Toque (firetouchinterest)
-            if firetouchinterest then
-                firetouchinterest(root, obj, 0)
-                firetouchinterest(root, obj, 1)
+            if targetPart and obj ~= char then -- Não coletar a si mesmo
+                -- Tenta interagir via ProximityPrompt
+                local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj.Parent:FindFirstChildOfClass("ProximityPrompt")
+                
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
+                
+                -- Tenta o toque (FireTouch) para garantir a coleta
+                if firetouchinterest and targetPart:IsA("BasePart") then
+                    firetouchinterest(root, targetPart, 0)
+                    firetouchinterest(root, targetPart, 1)
+                end
             end
         end
     end
@@ -82,19 +88,15 @@ RunService.Heartbeat:Connect(function()
     elseif d < 300 then
         waveLabel.Text = "AVISO: " .. d .. "m"
         waveLabel.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
-    elseif d > 5000 then
-        waveLabel.Text = "Calmaria..."
-        waveLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     else
         waveLabel.Text = "Onda Segura: " .. d .. "m"
         waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     end
 end)
 
--- Loop de busca de raros (Roda a cada 1 segundo para manter o script leve)
 task.spawn(function()
     while true do
-        pcall(collectRareItems)
-        task.wait(1) 
+        pcall(collectDugDug)
+        task.wait(0.5) -- Intervalo equilibrado para não dar lag
     end
 end)
