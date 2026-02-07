@@ -1,120 +1,103 @@
---[[
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
-]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--- GUI Setup
+local isProtected = false
+local targets = {
+    Impulse = {
+        Path = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"),
+        Name = "RE/CombatService/ApplyImpulse",
+        Real = nil,
+        Fake = nil
+    },
+    Ragdoll = {
+        Path = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Ragdoll"),
+        Name = "Ragdoll",
+        Real = nil,
+        Fake = nil
+    }
+}
+
+local function restoreTarget(target)
+    if target.Fake then
+        target.Fake:Destroy()
+        target.Fake = nil
+    end
+    if target.Real and not target.Real.Parent then
+        target.Real.Parent = target.Path
+    end
+end
+
+local function neutralizeTarget(target)
+    local realEvent = target.Path:FindFirstChild(target.Name)
+    if realEvent and not target.Real then
+        target.Real = realEvent
+        target.Real.Parent = nil
+        
+        local fakeEvent = Instance.new("RemoteEvent")
+        fakeEvent.Name = target.Name
+        fakeEvent.Parent = target.Path
+        target.Fake = fakeEvent
+        print("[Sentinela] Alvo '" .. target.Name .. "' foi neutralizado.")
+    end
+end
+
+local sentinelLoop
+local function setProtection(enabled)
+    isProtected = enabled
+    
+    if enabled then
+        if sentinelLoop then sentinelLoop:Disconnect() end
+        
+        sentinelLoop = RunService.Heartbeat:Connect(function()
+            for _, target in pairs(targets) do
+                if not target.Real then
+                    neutralizeTarget(target)
+                end
+            end
+        end)
+        print("[Sentinela] Proteção ATIVADA. Vigilância contínua iniciada.")
+    else
+        if sentinelLoop then sentinelLoop:Disconnect() sentinelLoop = nil end
+        
+        for _, target in pairs(targets) do
+            restoreTarget(target)
+        end
+        print("[Sentinela] Proteção DESATIVADA. Alvos restaurados.")
+    end
+end
+
+-- [[ GUI ]]
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RagdollGui"
+screenGui.Name = "SentinelGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 40)
-button.Position = UDim2.new(0, 20, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Text = "Toggle Ragdoll"
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
-button.Parent = screenGui
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 180, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Draggable = true
+toggleButton.BackgroundColor3 = Color3.fromRGB(45, 179, 83)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 18
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Text = "Invencibilidade: ON"
+Instance.new("UICorner", toggleButton).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", toggleButton).Color = Color3.fromRGB(255,255,255)
+toggleButton.Parent = screenGui
 
--- State
-local isRagdolled = false
-local motorBackup = {}
-
-local function getCharacter()
-	return player.Character or player.CharacterAdded:Wait()
-end
-
--- Ragdoll function
-local function toggleRagdoll()
-	local character = getCharacter()
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then return end
-
-	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-
-	if not isRagdolled then
-		-- Disable humanoid states to allow physics to take over
-		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-		humanoid.AutoRotate = false
-
-		-- Store original joints
-		motorBackup = {}
-
-		for _, joint in ipairs(character:GetDescendants()) do
-			if joint:IsA("Motor6D") then
-				local socket = Instance.new("BallSocketConstraint")
-				local a1 = Instance.new("Attachment")
-				local a2 = Instance.new("Attachment")
-
-				a1.CFrame = joint.C0
-				a2.CFrame = joint.C1
-				a1.Parent = joint.Part0
-				a2.Parent = joint.Part1
-
-				socket.Attachment0 = a1
-				socket.Attachment1 = a2
-				socket.Parent = joint.Parent
-				socket.LimitsEnabled = true
-				socket.TwistLimitsEnabled = true
-
-				motorBackup[joint.Name .. "_" .. joint:GetFullName()] = {
-					Part0 = joint.Part0,
-					Part1 = joint.Part1,
-					C0 = joint.C0,
-					C1 = joint.C1,
-					Parent = joint.Parent,
-				}
-
-				joint:Destroy()
-			end
-		end
-
-		-- Make them fall by applying a slight upward velocity first
-		root.Velocity = Vector3.new(0, 15, 0)
-
-		isRagdolled = true
-		button.Text = "Unragdoll"
-
-	else
-		-- Restore motors
-		for _, data in pairs(motorBackup) do
-			local motor = Instance.new("Motor6D")
-			motor.Name = "RestoredMotor"
-			motor.Part0 = data.Part0
-			motor.Part1 = data.Part1
-			motor.C0 = data.C0
-			motor.C1 = data.C1
-			motor.Parent = data.Parent
-		end
-		motorBackup = {}
-
-		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-		humanoid.AutoRotate = true
-
-		-- Remove leftover attachments/sockets
-		for _, item in ipairs(character:GetDescendants()) do
-			if item:IsA("BallSocketConstraint") or item:IsA("Attachment") then
-				item:Destroy()
-			end
-		end
-
-		isRagdolled = false
-		button.Text = "Toggle Ragdoll"
-	end
-end
-
--- Revert on respawn
-player.CharacterAdded:Connect(function(char)
-	isRagdolled = false
-	motorBackup = {}
-	button.Text = "Toggle Ragdoll"
+toggleButton.MouseButton1Click:Connect(function()
+    if isProtected then
+        setProtection(false)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        toggleButton.Text = "Invencibilidade: OFF"
+    else
+        setProtection(true)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(45, 179, 83)
+        toggleButton.Text = "Invencibilidade: ON"
+    end
 end)
 
-button.MouseButton1Click:Connect(toggleRagdoll)
+setProtection(true)
