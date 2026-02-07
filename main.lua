@@ -1,5 +1,3 @@
--- Executando o script base
-loadstring(game:HttpGet("https://raw.githubusercontent.com/senha00998734-byte/jogo-de-futboll/refs/heads/main/main.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
