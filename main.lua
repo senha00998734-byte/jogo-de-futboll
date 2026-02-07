@@ -1,109 +1,108 @@
+-- Executando o script base
+loadstring(game:HttpGet("https://raw.githubusercontent.com/senha00998734-byte/jogo-de-futboll/refs/heads/main/main.lua"))()
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- Configurações de Coleta
-_G.AutoCollect = true 
-
--- Interface Simplificada
+-- Interface
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "OceanX_Lite"
+gui.Name = "OceanX_FinalFix"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 220, 0, 130)
-main.Position = UDim2.new(0, 50, 0.5, -65)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+main.Size = UDim2.new(0, 200, 0, 100)
+main.Position = UDim2.new(0, 20, 0.4, 0)
+main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main)
 
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "OCEAN X - WAVE & COLLECT"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-Instance.new("UICorner", title)
-
 local waveLabel = Instance.new("TextLabel", main)
-waveLabel.Size = UDim2.new(0.9, 0, 0, 40)
-waveLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
-waveLabel.Text = "Onda: Detectando..."
+waveLabel.Size = UDim2.new(1, 0, 0.5, 0)
+waveLabel.Text = "Procurando Onda..."
 waveLabel.TextColor3 = Color3.white
-waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+waveLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 Instance.new("UICorner", waveLabel)
 
-local statusLabel = Instance.new("TextLabel", main)
-statusLabel.Size = UDim2.new(0.9, 0, 0, 30)
-statusLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
-statusLabel.Text = "Auto-Collect: ATIVO"
-statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.BackgroundTransparency = 1
+local collectLabel = Instance.new("TextLabel", main)
+collectLabel.Size = UDim2.new(1, 0, 0.5, 0)
+collectLabel.Position = UDim2.new(0, 0, 0.5, 0)
+collectLabel.Text = "Coletor: Ativo"
+collectLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+collectLabel.BackgroundTransparency = 1
 
---- [LÓGICA DE DETECÇÃO DA ONDA] ---
-local function getWaveDistance()
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return 9999 end
+--- [DETECTOR DE ONDA RADICAL] ---
+local function getWave()
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
     
-    local root = char.HumanoidRootPart
-    local closest = 9999
+    local closestDist = 9999
     
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if (obj.Name:lower():find("wave") or obj.Name:lower():find("tsunami")) and obj:IsA("BasePart") then
-            local dist = (obj.Position - root.Position).Magnitude
-            if dist < closest then closest = dist end
+    -- Varre TUDO no Workspace que seja uma peça grande e se mova ou tenha nome de água
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Transparency < 1 then
+            local name = v.Name:lower()
+            -- Filtro por nomes e tamanhos típicos de ondas de tsunami no Roblox
+            if name:find("wave") or name:find("tsunami") or name:find("water") or (v.Size.X > 60 and v.Size.Z > 60) then
+                -- Verifica se a peça está acima do nível do mar (geralmente ondas de tsunami sobem)
+                if v.Position.Y > -5 then
+                    local dist = (v.Position - root.Position).Magnitude
+                    if dist < closestDist then
+                        closestDist = dist
+                    end
+                end
+            end
         end
     end
-    return math.floor(closest)
+    return math.floor(closestDist)
 end
 
---- [COLETOR INSTANTÂNEO (BRAINHOT)] ---
+--- [COLETOR INSTANTÂNEO POR TOQUE E PROMPT] ---
 local function instantCollect()
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local root = char.HumanoidRootPart
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-    for _, obj in pairs(workspace:GetDescendants()) do
-        -- Filtra por nomes comuns de itens/caixas/brainhot
-        if (obj.Name:lower():find("box") or obj.Name:lower():find("caixa") or obj.Name:lower():find("item")) 
-            and obj:IsA("BasePart") and obj.Transparency < 1 then
-            
-            -- Teleporta o item para você (ou você para o item, dependendo da segurança do jogo)
-            -- A forma mais segura é disparar o ProximityPrompt se houver
-            local prompt = obj:FindFirstChildOfClass("ProximityPrompt")
-            if prompt then
-                fireproximityprompt(prompt)
-            else
-                -- Tenta coletar por toque/proximidade física
-                local oldPos = obj.CFrame
-                obj.CFrame = root.CFrame
-                task.wait(0.1)
+    for _, v in pairs(workspace:GetDescendants()) do
+        -- Adicionei "Handle" e "Part" porque às vezes o item é um Tool no chão
+        if v:IsA("BasePart") then
+            local name = v.Name:lower()
+            if name:find("braihot") or name:find("box") or name:find("caixa") or name:find("gift") or v:FindFirstChild("TouchInterest") then
+                
+                -- 1. Tenta disparar o ProximityPrompt (E)
+                local prompt = v:FindFirstChildOfClass("ProximityPrompt") or v.Parent:FindFirstChildOfClass("ProximityPrompt")
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
+                
+                -- 2. Simula o toque físico (Teleporta o toque para o jogador)
+                if firetouchinterest then
+                    firetouchinterest(root, v, 0) -- Toca
+                    firetouchinterest(root, v, 1) -- Solta
+                end
             end
         end
     end
 end
 
---- [LOOP PRINCIPAL] ---
+--- [LOOP] ---
 RunService.Heartbeat:Connect(function()
-    -- Monitor de Onda
-    local d = getWaveDistance()
-    if d < 100 then
-        waveLabel.Text = "⚠️ PERIGO: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    elseif d < 300 then
-        waveLabel.Text = "AVISO: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+    local dist = getWave()
+    if dist and dist < 9000 then
+        if dist < 150 then
+            waveLabel.Text = "⚠️ PERIGO: " .. dist .. "m"
+            waveLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        else
+            waveLabel.Text = "🌊 Onda a: " .. dist .. "m"
+            waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        end
     else
-        waveLabel.Text = "Onda Segura: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        waveLabel.Text = "Calmaria..."
+        waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     end
 end)
 
--- Loop de Coleta Rápida
 task.spawn(function()
-    while true do
-        if _G.AutoCollect then
-            instantCollect()
-        end
-        task.wait(0.5) -- Intervalo curto para não dar lag, mas ser "instantâneo"
+    while task.wait(0.1) do -- 0.1 para ser o mais rápido possível sem crashar
+        pcall(instantCollect)
     end
 end)
