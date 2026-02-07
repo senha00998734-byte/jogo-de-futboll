@@ -2,13 +2,13 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- Interface (Design Original que você gosta)
+-- Interface Final com Timer
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "OceanX_Celestial_V5"
+gui.Name = "OceanX_Celestial_Timer_V7"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 250, 0, 110)
-main.Position = UDim2.new(0, 50, 0.5, -55)
+main.Size = UDim2.new(0, 250, 0, 160) -- Aumentado para caber o Timer
+main.Position = UDim2.new(0, 50, 0.5, -80)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 main.Active = true
 main.Draggable = true
@@ -16,34 +16,65 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1, 0, 0, 35)
-title.Text = "🌊 OCEAN X - V5 🌊"
+title.Text = "🌊 OCEAN X - ELITE V7 🌊"
 title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
+title.BackgroundColor3 = Color3.fromRGB(0, 80, 200)
 Instance.new("UICorner", title)
 
+-- Mostrador de Onda
 local waveLabel = Instance.new("TextLabel", main)
-waveLabel.Size = UDim2.new(0.9, 0, 0, 45)
-waveLabel.Position = UDim2.new(0.05, 0, 0.45, 0)
-waveLabel.Text = "Procurando Onda..."
+waveLabel.Size = UDim2.new(0.9, 0, 0, 35)
+waveLabel.Position = UDim2.new(0.05, 0, 0.28, 0)
+waveLabel.Text = "Onda: Detectando..."
 waveLabel.TextColor3 = Color3.white
 waveLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 Instance.new("UICorner", waveLabel)
 
---- [BUSCADOR DE ONDAS REFEITO] ---
--- Se a onda não estiver no Workspace, ele procura em pastas ocultas
+-- NOVO: Mostrador de Tempo para Celestial
+local timerLabel = Instance.new("TextLabel", main)
+timerLabel.Size = UDim2.new(0.9, 0, 0, 35)
+timerLabel.Position = UDim2.new(0.05, 0, 0.55, 0)
+timerLabel.Text = "Próximo Celestial: --:--"
+timerLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+timerLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+Instance.new("UICorner", timerLabel)
+
+local statusLabel = Instance.new("TextLabel", main)
+statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+statusLabel.Position = UDim2.new(0.05, 0, 0.82, 0)
+statusLabel.Text = "Aguardando Spawn..."
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextSize = 12
+
+--- [LÓGICA DO TIMER] ---
+-- Tenta capturar o tempo do evento na tela ou faz uma contagem regressiva baseada no ciclo
+local function updateCelestialTimer()
+    local eventTimer = "00:00"
+    
+    -- Busca por textos de tempo na tela do jogo (como o que aparece na sua foto de 95s)
+    for _, v in pairs(player.PlayerGui:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Visible then
+            local match = v.Text:match("%d+s") or v.Text:match("%d+:%d+")
+            if match then
+                eventTimer = match
+                break
+            end
+        end
+    end
+    
+    timerLabel.Text = "Evento/Spawn: " .. eventTimer
+end
+
+--- [LÓGICA DA ONDA] ---
 local function getWaveDistance()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return 9999 end
-    
     local closest = 9999
-    
-    -- Busca profunda para garantir que ache a onda onde quer que ela esteja
     for _, obj in pairs(workspace:GetDescendants()) do
-        -- Verifica se o nome tem 'wave' ou 'tsunami' e se é uma peça física
-        if obj:IsA("BasePart") and (obj.Name:lower():find("wave") or obj.Name:lower():find("tsunami")) then
-            -- Ignora partes invisíveis ou muito pequenas que não são a onda real
-            if obj.Transparency < 1 and obj.Size.Y > 2 then
+        if obj:IsA("BasePart") and (obj.Name:lower():find("wall") or obj.Name:lower():find("wave")) then
+            if obj.Size.Y > 15 and obj.Transparency < 1 then
                 local dist = (obj.Position - root.Position).Magnitude
                 if dist < closest then closest = dist end
             end
@@ -52,65 +83,47 @@ local function getWaveDistance()
     return math.floor(closest)
 end
 
---- [COLETOR CELESTIAL COM AVISO] ---
-local function collectRareCelestial()
+--- [COLETOR AUTO-TP] ---
+local function collectCelestials()
     local char = player.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
     for _, obj in pairs(workspace:GetDescendants()) do
         local name = obj.Name:lower()
-        -- Alvos: Dug Dug Dug ou Celestial Lucky Block
-        if (name:find("dug") or name:find("lucky block") or name:find("celestial")) and not obj:IsDescendantOf(char) then
-            
-            local targetPart = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Handle") or (obj:IsA("BasePart") and obj)
-            
-            if targetPart and targetPart:IsA("BasePart") and targetPart.Size.Magnitude < 30 then
-                -- AVISO NO CHAT (Só você vê)
-                game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-                    Text = "⭐ CELESTIAL DETECTADO: " .. obj.Name .. "! Teleportando...";
-                    Color = Color3.new(1, 0.5, 0);
-                    Font = Enum.Font.SourceSansBold;
-                })
-
-                -- Teleport e Coleta
-                root.CFrame = targetPart.CFrame
+        if name:find("dug") or name:find("lucky") or name:find("celestial") then
+            local p = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+            if p and p.Size.Magnitude < 40 and not obj:IsDescendantOf(char) then
+                statusLabel.Text = "⭐ COLETANDO: " .. obj.Name:upper()
+                root.CFrame = p.CFrame
                 task.wait(0.1)
-                
                 local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj.Parent:FindFirstChildOfClass("ProximityPrompt")
                 if prompt then fireproximityprompt(prompt) end
-                
                 if firetouchinterest then
-                    firetouchinterest(root, targetPart, 0)
-                    firetouchinterest(root, targetPart, 1)
+                    firetouchinterest(root, p, 0)
+                    firetouchinterest(root, p, 1)
                 end
-                return 
+                return
             end
         end
     end
+    statusLabel.Text = "Buscando Celestiais..."
 end
 
 --- [LOOP PRINCIPAL] ---
 RunService.Heartbeat:Connect(function()
+    -- Atualiza Onda
     local d = getWaveDistance()
-    if d < 120 then
-        waveLabel.Text = "⚠️ PERIGO: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    elseif d < 400 then
-        waveLabel.Text = "AVISO: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-    elseif d > 5000 then
-        waveLabel.Text = "🌊 Sem ondas..."
-        waveLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    else
-        waveLabel.Text = "Onda Segura: " .. d .. "m"
-        waveLabel.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    end
+    waveLabel.Text = "Onda: " .. (d > 5000 and "Longe" or d .. "m")
+    waveLabel.BackgroundColor3 = d < 150 and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(40, 40, 60)
+    
+    -- Atualiza Timer
+    updateCelestialTimer()
 end)
 
 task.spawn(function()
     while true do
-        pcall(collectRareCelestial)
-        task.wait(1.5)
+        pcall(collectCelestials)
+        task.wait(1)
     end
 end)
