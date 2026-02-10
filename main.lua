@@ -7,11 +7,11 @@ local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
 -- Limpeza de UI anterior
-if CoreGui:FindFirstChild("MakalLoader") then CoreGui["MakalLoader"]:Destroy() end
+if CoreGui:FindFirstChild("BIELZIN") then CoreGui["BIELZIN"]:Destroy() end
 
 -- Criando a Interface (Estilo MakalHub)
 local MakalUI = Instance.new("ScreenGui", CoreGui)
-MakalUI.Name = "MakalLoader"
+MakalUI.Name = "BIELZIN"
 
 local MainFrame = Instance.new("Frame", MakalUI)
 MainFrame.Size = UDim2.new(0, 0, 0, 0)
@@ -31,7 +31,7 @@ Stroke.Thickness = 2
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.Text = "MAKAL HUB"
+Title.Text = "BIELZIN"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 20
 Title.Font = Enum.Font.GothamBold
