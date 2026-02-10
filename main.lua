@@ -1,78 +1,68 @@
 --[[ 
-    MAKAL-STYLE LOADER FOR INSTANT COLLECT
-    Personalizado para: Escape Tsunami / Brainrots
+    INSTANT COLLECT + NOTIFICAÇÃO DE ATIVAÇÃO
 ]]
 
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
 
--- Criando a Interface (Estilo MakalHub)
-local MakalUI = Instance.new("ScreenGui")
-MakalUI.Name = "MakalLoader"
-MakalUI.Parent = CoreGui
+-- Função para mandar notificação oficial do Roblox (sempre aparece)
+local function Notificar(titulo, texto)
+    StarterGui:SetCore("SendNotification", {
+        Title = titulo;
+        Text = texto;
+        Duration = 5;
+    })
+end
 
-local MainFrame = Instance.new("Frame", MakalUI)
-MainFrame.Size = UDim2.new(0, 0, 0, 0) -- Começa invisível para o Tween
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+-- 1. Criando a Interface Visual de Loading (Bypass de segurança)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NotificacaoAtiva"
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 250, 0, 60)
+MainFrame.Position = UDim2.new(0.5, -125, 0, -100) -- Começa fora da tela (topo)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
+Instance.new("UICorner", MainFrame)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(130, 0, 255)
 
-local Corner = Instance.new("UICorner", MainFrame)
-Corner.CornerRadius = UDim.new(0, 10)
+local Label = Instance.new("TextLabel", MainFrame)
+Label.Size = UDim2.new(1, 0, 1, 0)
+Label.Text = "COLETA INSTANTÂNEA ATIVA ✅"
+Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+Label.BackgroundTransparency = 1
+Label.Font = Enum.Font.GothamBold
+Label.TextSize = 14
 
-local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(120, 0, 255) -- Cor roxa neon
-Stroke.Thickness = 2
+-- Animação de descida
+MainFrame:TweenPosition(UDim2.new(0.5, -125, 0, 50), "Out", "Back", 0.5, true)
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "MAKAL HUB - LOADER"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 18
-Title.Font = Enum.Font.GothamBold
+-- 2. FUNÇÃO DE COLETA (O SCRIPT EM SI)
+local function aplicarBypass(prompt)
+    prompt.HoldDuration = 0
+end
 
-local Status = Instance.new("TextLabel", MainFrame)
-Status.Size = UDim2.new(1, 0, 0, 20)
-Status.Position = UDim2.new(0, 0, 0, 45)
-Status.BackgroundTransparency = 1
-Status.Text = "Verificando Script..."
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.TextSize = 14
-Status.Font = Enum.Font.Gotham
+for _, v in pairs(game:GetDescendants()) do
+    if v:IsA("ProximityPrompt") then aplicarBypass(v) end
+end
 
--- Animação de Abertura
-MainFrame:TweenSize(UDim2.new(0, 300, 0, 100), "Out", "Quad", 0.5, true)
+game.DescendantAdded:Connect(function(v)
+    if v:IsA("ProximityPrompt") then aplicarBypass(v) end
+end)
 
--- Lógica de Carregamento
-task.spawn(function()
-    task.wait(1)
-    Status.Text = "Injetando Instant Collect..."
-    task.wait(1.5)
-    Status.Text = "Sucesso! Aproveite."
-    
-    -- FUNÇÃO DE COLETA INSTANTÂNEA (O CORAÇÃO DO SCRIPT)
-    local ProximityPromptService = game:GetService("ProximityPromptService")
-    
-    -- Isso aqui remove a "bolinha" de espera
-    ProximityPromptService.PromptButtonHoldBegan:Connect(function(p)
-        p.HoldDuration = 0
-        fireproximityprompt(p)
-    end)
-    
-    -- Garante que novos itens que aparecerem também sejam instantâneos
-    game.DescendantAdded:Connect(function(d)
-        if d:IsA("ProximityPrompt") then
-            d.HoldDuration = 0
-        end
-    end)
+game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
+    p.HoldDuration = 0
+    fireproximityprompt(p)
+end)
 
-    task.wait(1)
-    
-    -- Animação de Fechamento
-    MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quad", 0.5, true)
+-- Feedback final
+Notificar("Sucesso!", "O Bypass de Coleta foi injetado.")
+print("✅ SCRIPT ATIVO!")
+
+-- Fecha a janelinha após 3 segundos
+task.delay(3, function()
+    MainFrame:TweenPosition(UDim2.new(0.5, -125, 0, -100), "In", "Quad", 0.5, true)
     task.wait(0.5)
-    MakalUI:Destroy()
+    ScreenGui:Destroy()
 end)
