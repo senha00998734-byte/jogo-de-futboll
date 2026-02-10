@@ -1,103 +1,100 @@
---[[
-    VELOCITY CONTROL PANEL + INSTANT COLLECT
-    Use as setas para ajustar ou os botões na tela
+--[[ 
+    MAKALHUB LOADER - APENAS COLETA INSTANTÂNEA
+    Remove a "bolinha" de espera e ativa o Loader visual.
 ]]
 
-local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
--- Variáveis de Controle
-_G.SpeedValue = 16
-_G.InfJump = true
+-- Limpeza de UI anterior
+if CoreGui:FindFirstChild("MakalLoader") then CoreGui["MakalLoader"]:Destroy() end
 
--- 1. Interface de Controle
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "SpeedControlUI"
+-- Criando a Interface (Estilo MakalHub)
+local MakalUI = Instance.new("ScreenGui", CoreGui)
+MakalUI.Name = "MakalLoader"
 
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 200, 0, 150)
-Main.Position = UDim2.new(0, 50, 0.5, 0) -- Fica no lado esquerdo da tela
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.Active = true
-Main.Draggable = true -- Você pode arrastar com o mouse
-Instance.new("UICorner", Main)
-Instance.new("UIStroke", Main).Color = Color3.fromRGB(130, 0, 255)
+local MainFrame = Instance.new("Frame", MakalUI)
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
 
-local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Ajuste de Speed"
-Title.TextColor3 = Color3.new(1,1,1)
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 10)
+
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(140, 0, 255)
+Stroke.Thickness = 2
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
+Title.Text = "MAKAL HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
 Title.Font = Enum.Font.GothamBold
 
-local Display = Instance.new("TextLabel", Main)
-Display.Size = UDim2.new(1, 0, 0, 40)
-Display.Position = UDim2.new(0, 0, 0, 30)
-Display.Text = tostring(_G.SpeedValue)
-Display.TextColor3 = Color3.fromRGB(130, 0, 255)
-Display.TextSize = 25
-Display.BackgroundTransparency = 1
-Display.Font = Enum.Font.GothamBold
+local Status = Instance.new("TextLabel", MainFrame)
+Status.Size = UDim2.new(1, 0, 0, 20)
+Status.Position = UDim2.new(0, 0, 0, 45)
+Status.BackgroundTransparency = 1
+Status.Text = "Verificando Jogo..."
+Status.TextColor3 = Color3.fromRGB(180, 180, 180)
+Status.TextSize = 14
+Status.Font = Enum.Font.Gotham
 
--- Botão Aumentar (+50)
-local Add = Instance.new("TextButton", Main)
-Add.Size = UDim2.new(0, 80, 0, 30)
-Add.Position = UDim2.new(0.5, 5, 0, 80)
-Add.Text = "+50"
-Add.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Add.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Add)
+local BarBack = Instance.new("Frame", MainFrame)
+BarBack.Size = UDim2.new(0.8, 0, 0, 4)
+BarBack.Position = UDim2.new(0.1, 0, 0, 85)
+BarBack.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+BarBack.BorderSizePixel = 0
+Instance.new("UICorner", BarBack)
 
--- Botão Diminuir (-50)
-local Sub = Instance.new("TextButton", Main)
-Sub.Size = UDim2.new(0, 80, 0, 30)
-Sub.Position = UDim2.new(0.5, -85, 0, 80)
-Sub.Text = "-50"
-Sub.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Sub.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Sub)
+local BarFill = Instance.new("Frame", BarBack)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
+BarFill.BorderSizePixel = 0
+Instance.new("UICorner", BarFill)
 
--- Loop de Velocidade
+-- Animação de Entrada
+MainFrame:TweenSize(UDim2.new(0, 320, 0, 120), "Out", "Quad", 0.5, true)
+
 task.spawn(function()
-    while task.wait(0.1) do
-        if lp.Character and lp.Character:FindFirstChild("Humanoid") then
-            lp.Character.Humanoid.WalkSpeed = _G.SpeedValue
-            Display.Text = math.floor(_G.SpeedValue)
+    task.wait(0.6)
+    
+    Status.Text = "Injetando Bypass de Coleta..."
+    TweenService:Create(BarFill, TweenInfo.new(1.5), {Size = UDim2.new(0.7, 0, 1, 0)}):Play()
+    
+    -- FUNÇÃO DE COLETA (REMOVE A BOLINHA)
+    local function aplicarBypass(p)
+        if p:IsA("ProximityPrompt") then
+            p.HoldDuration = 0
         end
     end
-end)
 
--- Funções dos Botões
-Add.MouseButton1Click:Connect(function()
-    if _G.SpeedValue < 2000 then
-        _G.SpeedValue = _G.SpeedValue + 50
+    -- Aplica nos itens que já existem
+    for _, v in pairs(game:GetDescendants()) do
+        aplicarBypass(v)
     end
-end)
 
-Sub.MouseButton1Click:Connect(function()
-    if _G.SpeedValue > 16 then
-        _G.SpeedValue = _G.SpeedValue - 50
-    else
-        _G.SpeedValue = 16
-    end
-end)
+    -- Aplica em itens novos que aparecerem
+    game.DescendantAdded:Connect(aplicarBypass)
 
--- 2. COLETA INSTANTÂNEA (Sempre Ativa)
-game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
-    p.HoldDuration = 0
-    fireproximityprompt(p)
-end)
+    -- Bypass de clique forçado
+    game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
+        p.HoldDuration = 0
+        fireproximityprompt(p)
+    end)
 
--- 3. PULO INFINITO
-game:GetService("UserInputService").JumpRequest:Connect(function()
-    if _G.InfJump and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
-        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end
-end)
+    task.wait(1.5)
+    Status.Text = "Ativado com Sucesso!"
+    TweenService:Create(BarFill, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+    task.wait(0.8)
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Painel Ativo!";
-    Text = "Arraste o menu para onde quiser.";
-    Duration = 5;
-})
+    -- Animação de Saída
+    MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quad", 0.5, true)
+    task.wait(0.5)
+    MakalUI:Destroy()
+end)
