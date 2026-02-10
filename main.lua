@@ -1,17 +1,15 @@
 --[[ 
-    MAKALHUB LOADER - INSTANT COLLECT + GOD MODE (1 CHANCE)
-    Foco: Escape Tsunami For Brainrots
+    MAKALHUB LOADER - APENAS COLETA INSTANTÂNEA
+    Remove a "bolinha" de espera e ativa o Loader visual.
 ]]
 
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
 
 -- Limpeza de UI anterior
 if CoreGui:FindFirstChild("MakalLoader") then CoreGui["MakalLoader"]:Destroy() end
 
--- Interface
+-- Criando a Interface (Estilo MakalHub)
 local MakalUI = Instance.new("ScreenGui", CoreGui)
 MakalUI.Name = "MakalLoader"
 
@@ -22,7 +20,10 @@ MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local Corner = Instance.new("UICorner", MainFrame)
+Corner.CornerRadius = UDim.new(0, 10)
+
 local Stroke = Instance.new("UIStroke", MainFrame)
 Stroke.Color = Color3.fromRGB(140, 0, 255)
 Stroke.Thickness = 2
@@ -31,7 +32,7 @@ local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
 Title.Text = "MAKAL HUB"
-Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 20
 Title.Font = Enum.Font.GothamBold
 
@@ -39,7 +40,7 @@ local Status = Instance.new("TextLabel", MainFrame)
 Status.Size = UDim2.new(1, 0, 0, 20)
 Status.Position = UDim2.new(0, 0, 0, 45)
 Status.BackgroundTransparency = 1
-Status.StatusText = "Iniciando..."
+Status.Text = "Verificando Jogo..."
 Status.TextColor3 = Color3.fromRGB(180, 180, 180)
 Status.TextSize = 14
 Status.Font = Enum.Font.Gotham
@@ -48,54 +49,52 @@ local BarBack = Instance.new("Frame", MainFrame)
 BarBack.Size = UDim2.new(0.8, 0, 0, 4)
 BarBack.Position = UDim2.new(0.1, 0, 0, 85)
 BarBack.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+BarBack.BorderSizePixel = 0
 Instance.new("UICorner", BarBack)
 
 local BarFill = Instance.new("Frame", BarBack)
 BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
+BarFill.BorderSizePixel = 0
 Instance.new("UICorner", BarFill)
 
--- Animação e Ativação
+-- Animação de Entrada
 MainFrame:TweenSize(UDim2.new(0, 320, 0, 120), "Out", "Quad", 0.5, true)
 
 task.spawn(function()
     task.wait(0.6)
     
-    Status.Text = "Ativando God Mode (1 Chance)..."
-    TweenService:Create(BarFill, TweenInfo.new(1), {Size = UDim2.new(0.5, 0, 1, 0)}):Play()
+    Status.Text = "Injetando Bypass de Coleta..."
+    TweenService:Create(BarFill, TweenInfo.new(1.5), {Size = UDim2.new(0.7, 0, 1, 0)}):Play()
     
-    -- FUNÇÃO GOD MODE (Remove scripts de dano local)
-    if lp.Character then
-        for _, v in pairs(lp.Character:GetDescendants()) do
-            if v:IsA("Script") and (v.Name:find("Dano") or v.Name:find("Kill")) then
-                v.Disabled = true
-            end
+    -- FUNÇÃO DE COLETA (REMOVE A BOLINHA)
+    local function aplicarBypass(p)
+        if p:IsA("ProximityPrompt") then
+            p.HoldDuration = 0
         end
     end
 
-    task.wait(1)
-    Status.Text = "Injetando Coleta Instantânea..."
-    TweenService:Create(BarFill, TweenInfo.new(1), {Size = UDim2.new(0.8, 0, 1, 0)}):Play()
-    
-    -- COLETA INSTANTÂNEA
+    -- Aplica nos itens que já existem
+    for _, v in pairs(game:GetDescendants()) do
+        aplicarBypass(v)
+    end
+
+    -- Aplica em itens novos que aparecerem
+    game.DescendantAdded:Connect(aplicarBypass)
+
+    -- Bypass de clique forçado
     game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
         p.HoldDuration = 0
         fireproximityprompt(p)
     end)
 
-    task.wait(1)
-    Status.Text = "Tudo Pronto!"
+    task.wait(1.5)
+    Status.Text = "Ativado com Sucesso!"
     TweenService:Create(BarFill, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-    task.wait(0.5)
+    task.wait(0.8)
 
+    -- Animação de Saída
     MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quad", 0.5, true)
     task.wait(0.5)
     MakalUI:Destroy()
 end)
-
--- Sistema de Notificação de Backup
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "God Mode Ativo";
-    Text = "Você está protegido contra o Tsunami!";
-    Duration = 5;
-})
