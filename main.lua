@@ -1,68 +1,103 @@
---[[ 
-    INSTANT COLLECT + NOTIFICAÇÃO DE ATIVAÇÃO
+--[[
+    VELOCITY CONTROL PANEL + INSTANT COLLECT
+    Use as setas para ajustar ou os botões na tela
 ]]
 
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
-local StarterGui = game:GetService("StarterGui")
 
--- Função para mandar notificação oficial do Roblox (sempre aparece)
-local function Notificar(titulo, texto)
-    StarterGui:SetCore("SendNotification", {
-        Title = titulo;
-        Text = texto;
-        Duration = 5;
-    })
-end
+-- Variáveis de Controle
+_G.SpeedValue = 16
+_G.InfJump = true
 
--- 1. Criando a Interface Visual de Loading (Bypass de segurança)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NotificacaoAtiva"
-ScreenGui.Parent = CoreGui
+-- 1. Interface de Controle
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "SpeedControlUI"
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 60)
-MainFrame.Position = UDim2.new(0.5, -125, 0, -100) -- Começa fora da tela (topo)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-Instance.new("UICorner", MainFrame)
-Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(130, 0, 255)
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 200, 0, 150)
+Main.Position = UDim2.new(0, 50, 0.5, 0) -- Fica no lado esquerdo da tela
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.Active = true
+Main.Draggable = true -- Você pode arrastar com o mouse
+Instance.new("UICorner", Main)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(130, 0, 255)
 
-local Label = Instance.new("TextLabel", MainFrame)
-Label.Size = UDim2.new(1, 0, 1, 0)
-Label.Text = "COLETA INSTANTÂNEA ATIVA ✅"
-Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-Label.BackgroundTransparency = 1
-Label.Font = Enum.Font.GothamBold
-Label.TextSize = 14
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "Ajuste de Speed"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
 
--- Animação de descida
-MainFrame:TweenPosition(UDim2.new(0.5, -125, 0, 50), "Out", "Back", 0.5, true)
+local Display = Instance.new("TextLabel", Main)
+Display.Size = UDim2.new(1, 0, 0, 40)
+Display.Position = UDim2.new(0, 0, 0, 30)
+Display.Text = tostring(_G.SpeedValue)
+Display.TextColor3 = Color3.fromRGB(130, 0, 255)
+Display.TextSize = 25
+Display.BackgroundTransparency = 1
+Display.Font = Enum.Font.GothamBold
 
--- 2. FUNÇÃO DE COLETA (O SCRIPT EM SI)
-local function aplicarBypass(prompt)
-    prompt.HoldDuration = 0
-end
+-- Botão Aumentar (+50)
+local Add = Instance.new("TextButton", Main)
+Add.Size = UDim2.new(0, 80, 0, 30)
+Add.Position = UDim2.new(0.5, 5, 0, 80)
+Add.Text = "+50"
+Add.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Add.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", Add)
 
-for _, v in pairs(game:GetDescendants()) do
-    if v:IsA("ProximityPrompt") then aplicarBypass(v) end
-end
+-- Botão Diminuir (-50)
+local Sub = Instance.new("TextButton", Main)
+Sub.Size = UDim2.new(0, 80, 0, 30)
+Sub.Position = UDim2.new(0.5, -85, 0, 80)
+Sub.Text = "-50"
+Sub.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Sub.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", Sub)
 
-game.DescendantAdded:Connect(function(v)
-    if v:IsA("ProximityPrompt") then aplicarBypass(v) end
+-- Loop de Velocidade
+task.spawn(function()
+    while task.wait(0.1) do
+        if lp.Character and lp.Character:FindFirstChild("Humanoid") then
+            lp.Character.Humanoid.WalkSpeed = _G.SpeedValue
+            Display.Text = math.floor(_G.SpeedValue)
+        end
+    end
 end)
 
+-- Funções dos Botões
+Add.MouseButton1Click:Connect(function()
+    if _G.SpeedValue < 2000 then
+        _G.SpeedValue = _G.SpeedValue + 50
+    end
+end)
+
+Sub.MouseButton1Click:Connect(function()
+    if _G.SpeedValue > 16 then
+        _G.SpeedValue = _G.SpeedValue - 50
+    else
+        _G.SpeedValue = 16
+    end
+end)
+
+-- 2. COLETA INSTANTÂNEA (Sempre Ativa)
 game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
     p.HoldDuration = 0
     fireproximityprompt(p)
 end)
 
--- Feedback final
-Notificar("Sucesso!", "O Bypass de Coleta foi injetado.")
-print("✅ SCRIPT ATIVO!")
-
--- Fecha a janelinha após 3 segundos
-task.delay(3, function()
-    MainFrame:TweenPosition(UDim2.new(0.5, -125, 0, -100), "In", "Quad", 0.5, true)
-    task.wait(0.5)
-    ScreenGui:Destroy()
+-- 3. PULO INFINITO
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfJump and lp.Character and lp.Character:FindFirstChildOfClass("Humanoid") then
+        lp.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
 end)
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Painel Ativo!";
+    Text = "Arraste o menu para onde quiser.";
+    Duration = 5;
+})
