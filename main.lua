@@ -1,100 +1,156 @@
---[[ 
-    MAKALHUB LOADER - APENAS COLETA INSTANTÂNEA
-    Remove a "bolinha" de espera e ativa o Loader visual.
-]]
+--// Prevenção de execução duplicada
+if _G.BielzinLoaded then return end
+_G.BielzinLoaded = true
 
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
+--// Serviços
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
--- Limpeza de UI anterior
-if CoreGui:FindFirstChild("BIELZIN") then CoreGui["BIELZIN"]:Destroy() end
+local player = Players.LocalPlayer
+local dashForce = 150
+local wallHackEnabled = false
+local godModeEnabled = false
 
--- Criando a Interface (Estilo MakalHub)
-local MakalUI = Instance.new("ScreenGui", CoreGui)
-MakalUI.Name = "BIELZIN"
+--// Interface
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "BIELZIN_HUB"
+screenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame", MakalUI)
-MainFrame.Size = UDim2.new(0, 0, 0, 0)
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 220, 0, 220) -- Aumentado para caber o novo botão
+mainFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+mainFrame.BorderSizePixel = 0
+Instance.new("UICorner", mainFrame)
+local stroke = Instance.new("UIStroke", mainFrame)
+stroke.Color = Color3.fromRGB(140, 0, 255)
+stroke.Thickness = 2
 
-local Corner = Instance.new("UICorner", MainFrame)
-Corner.CornerRadius = UDim.new(0, 10)
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "BIELZIN GOD MODE"
+title.TextColor3 = Color3.white
+title.Font = Enum.Font.GothamBold
+title.BackgroundTransparency = 1
 
-local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(140, 0, 255)
-Stroke.Thickness = 2
+--// BOTÃO GOD MODE
+local godBtn = Instance.new("TextButton", mainFrame)
+godBtn.Size = UDim2.new(0.9, 0, 0, 35)
+godBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+godBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+godBtn.Text = "God Mode: OFF"
+godBtn.TextColor3 = Color3.white
+godBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", godBtn)
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundTransparency = 1
-Title.Text = "BIELZIN"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 20
-Title.Font = Enum.Font.GothamBold
+--// BOTÃO WALL HACK
+local whBtn = Instance.new("TextButton", mainFrame)
+whBtn.Size = UDim2.new(0.9, 0, 0, 35)
+whBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+whBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+whBtn.Text = "Wall Hack: OFF"
+whBtn.TextColor3 = Color3.white
+whBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", whBtn)
 
-local Status = Instance.new("TextLabel", MainFrame)
-Status.Size = UDim2.new(1, 0, 0, 20)
-Status.Position = UDim2.new(0, 0, 0, 45)
-Status.BackgroundTransparency = 1
-Status.Text = "Verificando Jogo..."
-Status.TextColor3 = Color3.fromRGB(180, 180, 180)
-Status.TextSize = 14
-Status.Font = Enum.Font.Gotham
+--// CONTROLES DASH
+local dashLabel = Instance.new("TextLabel", mainFrame)
+dashLabel.Size = UDim2.new(1, 0, 0, 30)
+dashLabel.Position = UDim2.new(0, 0, 0.6, 0)
+dashLabel.Text = "Dash Force (Q): " .. dashForce
+dashLabel.TextColor3 = Color3.white
+dashLabel.BackgroundTransparency = 1
 
-local BarBack = Instance.new("Frame", MainFrame)
-BarBack.Size = UDim2.new(0.8, 0, 0, 4)
-BarBack.Position = UDim2.new(0.1, 0, 0, 85)
-BarBack.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-BarBack.BorderSizePixel = 0
-Instance.new("UICorner", BarBack)
+local btnUp = Instance.new("TextButton", mainFrame)
+btnUp.Size = UDim2.new(0.4, 0, 0, 30)
+btnUp.Position = UDim2.new(0.55, 0, 0.75, 0)
+btnUp.Text = "+"
+btnUp.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
+Instance.new("UICorner", btnUp)
 
-local BarFill = Instance.new("Frame", BarBack)
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
-BarFill.BorderSizePixel = 0
-Instance.new("UICorner", BarFill)
+local btnDown = Instance.new("TextButton", mainFrame)
+btnDown.Size = UDim2.new(0.4, 0, 0, 30)
+btnDown.Position = UDim2.new(0.05, 0, 0.75, 0)
+btnDown.Text = "-"
+btnDown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Instance.new("UICorner", btnDown)
 
--- Animação de Entrada
-MainFrame:TweenSize(UDim2.new(0, 320, 0, 120), "Out", "Quad", 0.5, true)
-
-task.spawn(function()
-    task.wait(0.6)
-    
-    Status.Text = "Injetando Bypass de Coleta..."
-    TweenService:Create(BarFill, TweenInfo.new(1.5), {Size = UDim2.new(0.7, 0, 1, 0)}):Play()
-    
-    -- FUNÇÃO DE COLETA (REMOVE A BOLINHA)
-    local function aplicarBypass(p)
-        if p:IsA("ProximityPrompt") then
-            p.HoldDuration = 0
+-- --- LÓGICA GOD MODE (INVENCIBILIDADE) ---
+RunService.Stepped:Connect(function()
+    if godModeEnabled then
+        local char = player.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        if hum then
+            -- Tenta múltiplos métodos de invencibilidade
+            hum.Health = hum.MaxHealth -- Cura instantânea
+            if char:FindFirstChild("ForceField") == nil then
+                Instance.new("ForceField", char).Visible = false -- Campo de força invisível
+            end
+        end
+    else
+        -- Remove o ForceField se desativar o God Mode
+        if player.Character and player.Character:FindFirstChild("ForceField") then
+            player.Character.ForceField:Destroy()
         end
     end
-
-    -- Aplica nos itens que já existem
-    for _, v in pairs(game:GetDescendants()) do
-        aplicarBypass(v)
-    end
-
-    -- Aplica em itens novos que aparecerem
-    game.DescendantAdded:Connect(aplicarBypass)
-
-    -- Bypass de clique forçado
-    game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(p)
-        p.HoldDuration = 0
-        fireproximityprompt(p)
-    end)
-
-    task.wait(1.5)
-    Status.Text = "Ativado com Sucesso!"
-    TweenService:Create(BarFill, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-    task.wait(0.8)
-
-    -- Animação de Saída
-    MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quad", 0.5, true)
-    task.wait(0.5)
-    MakalUI:Destroy()
 end)
+
+-- --- LÓGICA WALL HACK (ESP) ---
+local function createESP(p)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "BielzinESP"
+    highlight.FillColor = Color3.fromRGB(140, 0, 255)
+    highlight.FillTransparency = 0.5
+    
+    RunService.RenderStepped:Connect(function()
+        if wallHackEnabled and p.Character then
+            highlight.Parent = p.Character
+        else
+            highlight.Parent = nil
+        end
+    end)
+end
+for _, p in pairs(Players:GetPlayers()) do if p ~= player then createESP(p) end end
+Players.PlayerAdded:Connect(createESP)
+
+-- --- LÓGICA DASH E COLETA ---
+local function doDash()
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        local bv = Instance.new("BodyVelocity", root)
+        bv.MaxForce = Vector3.new(1, 1, 1) * 50000
+        bv.Velocity = (root.CFrame.LookVector * dashForce) + Vector3.new(0, 2, 0)
+        task.wait(0.15)
+        bv:Destroy()
+    end
+end
+
+UserInputService.InputBegan:Connect(function(i, g)
+    if not g and i.KeyCode == Enum.KeyCode.Q then doDash() end
+end)
+
+task.spawn(function()
+    local function b(p) if p:IsA("ProximityPrompt") then p.HoldDuration = 0 end end
+    for _, v in pairs(game:GetDescendants()) do b(v) end
+    game.DescendantAdded:Connect(b)
+end)
+
+-- --- EVENTOS DE CLIQUE ---
+godBtn.MouseButton1Click:Connect(function()
+    godModeEnabled = not godModeEnabled
+    godBtn.Text = godModeEnabled and "God Mode: ON" or "God Mode: OFF"
+    godBtn.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(45, 45, 50)
+end)
+
+whBtn.MouseButton1Click:Connect(function()
+    wallHackEnabled = not wallHackEnabled
+    whBtn.Text = wallHackEnabled and "Wall Hack: ON" or "Wall Hack: OFF"
+    whBtn.BackgroundColor3 = wallHackEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(45, 45, 50)
+end)
+
+btnUp.MouseButton1Click:Connect(function() dashForce = dashForce + 50; dashLabel.Text = "Dash Force (Q): " .. dashForce end)
+btnDown.MouseButton1Click:Connect(function() dashForce = math.max(50, dashForce - 50); dashLabel.Text = "Dash Force (Q): " .. dashForce end)
+
+mainFrame.Active = true
+mainFrame.Draggable = true
